@@ -90,6 +90,7 @@ class AppleClient:
                 "Accept": "application/json",
                 "User-Agent": "Mozilla/5.0 (compatible; AppStoreReviewAnalysis/0.1)",
             },
+            empty_on_404=True,
         )
         entries = payload.get("data", [])
         if not isinstance(entries, list):
@@ -111,8 +112,10 @@ class AppleClient:
             attributes = entry["attributes"]
             return Review(
                 id=str(entry["id"]),
-                title=str(attributes.get("title", "")),
-                text=str(attributes.get("review", "")),
+                # `or ""` also covers an explicit JSON null, which `.get(key, "")`
+                # would otherwise turn into the literal string "None".
+                title=str(attributes.get("title") or ""),
+                text=str(attributes.get("review") or ""),
                 rating=int(attributes["rating"]),
                 author=attributes.get("userName"),
                 created_at=attributes.get("date"),
@@ -126,7 +129,16 @@ class AppleClient:
         url: str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        *,
+        empty_on_404: bool = False,
     ) -> dict[str, Any]:
+        """Fetch JSON with retries.
+
+        ``empty_on_404`` marks endpoints where 404 means "nothing here" (paging
+        past the last review page). Elsewhere a 404 means Apple's API itself
+        changed or broke - a missing app returns HTTP 200 with no results - so
+        it is reported as an unavailable source rather than silently emptied.
+        """
         for attempt in range(1, self.max_attempts + 1):
             try:
                 response = await self.http_client.get(url, params=params, headers=headers)
@@ -143,7 +155,7 @@ class AppleClient:
                         "Apple review source is temporarily unavailable"
                     ) from exc
             except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 404:
+                if exc.response.status_code == 404 and empty_on_404:
                     return {"data": []}
                 retryable = exc.response.status_code == 429 or exc.response.status_code >= 500
                 if not retryable or attempt == self.max_attempts:

@@ -6,8 +6,10 @@ from fastapi.responses import JSONResponse
 
 from app.api.analyses import router as analyses_router
 from app.api.reviews import router as reviews_router
+from app.config import LLMSettings
 from app.exceptions import ReviewCollectorError
 from app.repository import AnalysisRepository
+from app.services.llm_insights import LLMInsightGenerator
 
 
 def create_app() -> FastAPI:
@@ -19,6 +21,7 @@ def create_app() -> FastAPI:
     api.state.analysis_repository = AnalysisRepository(
         os.getenv("APP_DATABASE_PATH", "data/app_store_reviews.db")
     )
+    api.state.llm_insight_generator = LLMInsightGenerator(LLMSettings.from_env())
 
     @api.exception_handler(ReviewCollectorError)
     async def review_collector_exception_handler(
@@ -49,7 +52,12 @@ def create_app() -> FastAPI:
 
     @api.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
-        return {"status": "ok"}
+        return {
+            "status": "ok",
+            "llm_insights": (
+                "enabled" if api.state.llm_insight_generator.is_available else "disabled"
+            ),
+        }
 
     api.include_router(reviews_router)
     api.include_router(analyses_router)

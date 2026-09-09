@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 
@@ -19,6 +19,13 @@ class CollectReviewsRequest(BaseModel):
     seed: int | None = Field(
         default=None,
         description="Optional seed for a reproducible random sample",
+    )
+    use_llm: bool = Field(
+        default=True,
+        description=(
+            "Enrich the analysis with the Claude insight layer. Ignored with an "
+            "LLM_UNAVAILABLE warning when no ANTHROPIC_API_KEY is configured."
+        ),
     )
 
     @field_validator("app")
@@ -101,6 +108,42 @@ class ActionableInsight(BaseModel):
     recommendation: str
 
 
+Severity = Literal["critical", "high", "medium", "low"]
+Priority = Literal["P0", "P1", "P2"]
+
+
+class LLMTheme(BaseModel):
+    """A recurring problem theme grounded in the reviews that were supplied."""
+
+    theme: str = Field(description="Short human-readable name of the theme")
+    severity: Severity
+    affected_reviews: int = Field(ge=0, description="How many supplied reviews mention this theme")
+    summary: str = Field(description="What users actually complain about")
+    evidence_quotes: list[str] = Field(
+        default_factory=list,
+        description="Verbatim fragments from the reviews that support the theme",
+    )
+
+
+class LLMRecommendation(BaseModel):
+    """A prioritized action derived from the themes."""
+
+    title: str
+    priority: Priority
+    rationale: str
+    expected_impact: str
+
+
+class LLMInsightReport(BaseModel):
+    """Output of the Claude insight layer."""
+
+    model: str = Field(description="Model ID that produced the report")
+    executive_summary: str
+    themes: list[LLMTheme] = Field(default_factory=list)
+    recommendations: list[LLMRecommendation] = Field(default_factory=list)
+    reviews_considered: int = 0
+
+
 class AnalysisResponse(BaseModel):
     analysis_id: str
     created_at: str
@@ -113,3 +156,4 @@ class AnalysisResponse(BaseModel):
     metrics: Metrics
     negative_keywords: list[KeywordPhrase]
     insights: list[ActionableInsight]
+    llm_insights: LLMInsightReport | None = None

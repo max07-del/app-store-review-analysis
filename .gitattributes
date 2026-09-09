@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Generated CSV artifacts use RFC 4180 CRLF line endings; keep them byte-stable
+# so regenerating a report does not show up as a spurious diff.
+*.csv -text

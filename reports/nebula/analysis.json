@@ -1,6 +1,6 @@
 {
-  "analysis_id": "65c40578-a323-42e2-a25a-c6c38286b005",
-  "created_at": "2026-09-09T09:55:01.813224+00:00",
+  "analysis_id": "3852c392-556c-488e-91ef-fe8efbf483b2",
+  "created_at": "2026-09-09T11:31:36.030840+00:00",
   "app": {
     "id": "1459969523",
     "name": "Nebula: Spiritual Guidance",
@@ -13,7 +13,12 @@
   "collected_count": 100,
   "available_pool_size": 200,
   "is_partial": false,
-  "warnings": [],
+  "warnings": [
+    {
+      "code": "LLM_UNAVAILABLE",
+      "message": "ANTHROPIC_API_KEY is not configured; LLM insights were skipped"
+    }
+  ],
   "metrics": {
     "total_reviews": 100,
     "average_rating": 3.02,
@@ -121,5 +126,6 @@
       "share_of_negative_reviews": 16.28,
       "recommendation": "Validate the most requested workflows with usability tests and prioritize frequently requested controls."
     }
-  ]
+  ],
+  "llm_insights": null
 }

@@ -12,9 +12,11 @@ from app.repository import AnalysisRepository
 from app.schemas.reviews import (
     AnalysisResponse,
     AnalyzedReview,
+    CollectionWarning,
     CollectReviewsRequest,
 )
 from app.services.apple_client import AppleClient
+from app.services.llm_insights import LLMInsightGenerator
 from app.services.report import render_analysis_report
 from app.services.review_collector import ReviewCollector
 from app.services.text_analysis import ReviewAnalyzer
@@ -36,6 +38,14 @@ async def create_analysis(
         collection = await ReviewCollector(AppleClient(http_client)).collect(payload)
 
     analysis, reviews = ReviewAnalyzer().analyze(collection)
+
+    if payload.use_llm:
+        generator: LLMInsightGenerator = request.app.state.llm_insight_generator
+        report, error = await generator.generate(analysis.app, analysis.metrics, collection.reviews)
+        analysis.llm_insights = report
+        if error is not None:
+            analysis.warnings.append(CollectionWarning(code="LLM_UNAVAILABLE", message=error))
+
     _repository(request).save(analysis, reviews)
     return analysis
 

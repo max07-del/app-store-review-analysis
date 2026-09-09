@@ -4,7 +4,7 @@ from pathlib import Path
 
 from app.repository import AnalysisRepository
 from app.schemas.reviews import CollectReviewsResponse, Review
-from app.services.report import render_analysis_report
+from app.services.report import render_analysis_report, render_markdown_report
 from app.services.text_analysis import ReviewAnalyzer
 
 
@@ -41,6 +41,10 @@ def main() -> None:
     )
     (output_dir / "report.html").write_text(
         render_analysis_report(analysis),
+        encoding="utf-8",
+    )
+    (output_dir / "REPORT.md").write_text(
+        render_markdown_report(analysis),
         encoding="utf-8",
     )
 
