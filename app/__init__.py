@@ -1,1 +1,1 @@
-"""App Store review analysis API."""
+"""App Store review collection API."""
